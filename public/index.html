@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#173f35">
+  <meta name="description" content="Конвертер десяти валют по справочным курсам ECB с выбором даты и локальным кэшем.">
+  <title>Курс — конвертер валют</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Курс, главная"><span class="brand-mark">↗</span> курс<span class="brand-dot">.</span></a>
+    <span class="header-label">ВАЛЮТНЫЙ КОНВЕРТЕР</span>
+    <span class="source-pill"><span class="dot"></span> Данные ECB</span>
+  </header>
+  <main>
+    <div class="intro"><p class="eyebrow">ПРОСТО О ДЕНЬГАХ</p><h1>Другая валюта.<br><span>Та же ясность.</span></h1>
+      <p class="lead">Пересчитайте сумму по справочному курсу.<br>С датой, источником и без лишних шагов.</p></div>
+    <section class="workspace" aria-label="Конвертер валют">
+      <div class="form-panel">
+        <div class="panel-heading"><h2>Конвертация</h2><span class="small-tag">10 валют</span></div>
+        <form id="converter" novalidate>
+          <label for="amount">Сумма</label>
+          <div class="amount-wrap"><input id="amount" name="amount" inputmode="decimal" autocomplete="off" value="100" aria-describedby="amount-error" placeholder="Например, 100,50"><span id="amount-code">EUR</span></div>
+          <p class="field-error" id="amount-error" aria-live="polite"></p>
+          <div class="currencies">
+            <div><label for="from">Из валюты</label><select id="from" name="from"></select></div>
+            <button type="button" id="swap" class="swap" aria-label="Поменять валюты местами" title="Поменять валюты местами">⇄</button>
+            <div><label for="to">В валюту</label><select id="to" name="to"></select></div>
+          </div>
+          <div class="date-row"><div class="date-field"><label for="date">Дата курса</label><input type="date" id="date" name="date" aria-describedby="date-error"></div><button id="refresh" class="text-button" type="button">↻ Обновить курсы</button></div>
+          <p class="field-error" id="date-error" aria-live="polite"></p>
+          <button id="convert" class="primary" type="submit" disabled>Конвертировать <span aria-hidden="true">↗</span></button>
+        </form>
+        <div id="status" class="notice" role="status" aria-live="polite">Загружаем курсы…</div>
+        <button id="use-cache" type="button" class="cache-button" hidden>Использовать сохранённый курс</button>
+        <p id="storage-warning" class="storage-warning" role="status"></p>
+      </div>
+      <aside class="result-panel" aria-label="Результат конвертации">
+        <div class="result-top"><span>ВАШ РЕЗУЛЬТАТ</span><span class="result-icon" aria-hidden="true">↗</span></div>
+        <div id="result" aria-live="polite"><p class="result-caption">Из одной валюты — в другую</p><p class="result-value empty">Всё начинается<br>с суммы.</p><p class="rate-line">Выберите валюты и нажмите<br>«Конвертировать».</p></div>
+        <div class="result-bottom"><div class="meta-row"><span>Курс на дату</span><strong id="rate-date">—</strong></div><div class="meta-row"><span>Источник</span><a href="https://frankfurter.dev/" target="_blank" rel="noopener noreferrer">Frankfurter · ECB ↗</a></div><div class="meta-row"><span>Режим</span><strong id="mode">Ожидание данных</strong></div></div>
+      </aside>
+    </section>
+    <section class="details" aria-label="О курсах"><div><span class="detail-number">01 /</span><h3>Проверяемый источник</h3><p>Справочные курсы Европейского центрального банка через Frankfurter.</p></div><div><span class="detail-number">02 /</span><h3>Каждая дата на месте</h3><p>В выходные и праздники показываем последний опубликованный курс и его дату.</p></div><div><span class="detail-number">03 /</span><h3>Курсы под рукой</h3><p>Последний успешный ответ сохраняется в браузере и доступен при сбое сети.</p></div></section>
+  </main>
+  <footer><span>курс. <span class="footer-muted">/ Лабораторная работа №3</span></span><span>Справочный расчёт · без учёта комиссий</span></footer>
+</body>
+</html>
