@@ -75,6 +75,7 @@ export function convert(amount, from, to, snapshot) {
   if (!Number.isFinite(a) || !Number.isFinite(b) || a <= 0 || b <= 0) {
     throw new Error('Для выбранной валюты нет курса на эту дату. Выберите другую дату или валюту.');
   }
+  if (from === to) return amount;
   const result = amount / a * b;
   if (!Number.isFinite(result)) throw new Error('Результат выходит за допустимый диапазон.');
   return result;
