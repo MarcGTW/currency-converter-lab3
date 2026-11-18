@@ -3,11 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Локальный конвертер валют — лабораторная №3",
-  "engines": { "node": ">=22" },
+  "description": "NASA NEO Tracker & Currency Converter — Laboratory Work #3 (Spec-Driven Development & Google Antigravity)",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "node server.js",
     "test": "node --test",
+    "test:ui": "node --test tests/ui.test.js",
     "test:coverage": "node --test --experimental-test-coverage"
   }
 }
