@@ -1,0 +1,13 @@
+{
+  "name": "currency-lab",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Локальный конвертер валют — лабораторная №3",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage"
+  }
+}
