@@ -3,30 +3,65 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { loadRates } from './lib/rates.js';
+import { loadNeoData } from './lib/neo.js';
 import { validateDate } from './public/core.js';
+import { validateNeoDate } from './public/neo-core.js';
 
 const publicRoot = fileURLToPath(new URL('./public/', import.meta.url));
-const assets = { '/': ['index.html', 'text/html'], '/styles.css': ['styles.css', 'text/css'],
-  '/app.js': ['app.js', 'text/javascript'], '/core.js': ['core.js', 'text/javascript'], '/cache.js': ['cache.js', 'text/javascript'] };
+const assets = {
+  '/': ['index.html', 'text/html'],
+  '/styles.css': ['styles.css', 'text/css'],
+  '/app.js': ['app.js', 'text/javascript'],
+  '/core.js': ['core.js', 'text/javascript'],
+  '/cache.js': ['cache.js', 'text/javascript'],
+  '/neo-app.js': ['neo-app.js', 'text/javascript'],
+  '/neo-core.js': ['neo-core.js', 'text/javascript'],
+  '/neo-cache.js': ['neo-cache.js', 'text/javascript']
+};
 
-export function createApp({ loader = loadRates } = {}) {
+export function createApp({ loader = loadRates, neoLoader = loadNeoData } = {}) {
   return createServer(async (req, res) => {
     const send = (status, type, body) => {
-      res.writeHead(status, { 'Content-Type': `${type}; charset=utf-8`, 'Cache-Control': 'no-store',
-        'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer',
-        'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'" });
+      res.writeHead(status, {
+        'Content-Type': `${type}; charset=utf-8`,
+        'Cache-Control': 'no-store',
+        'X-Content-Type-Options': 'nosniff',
+        'Referrer-Policy': 'no-referrer',
+        'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data: https:; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+      });
       res.end(body);
     };
+
     try {
       if (req.method !== 'GET') return send(405, 'text/plain', 'Method not allowed');
       const url = new URL(req.url, 'http://localhost');
+
+      // NASA NeoWs API proxy
+      if (url.pathname === '/api/neo') {
+        const date = url.searchParams.get('date');
+        const error = validateNeoDate(date);
+        if (error) return send(400, 'application/json', JSON.stringify({ error }));
+        try {
+          const snapshot = await neoLoader(date);
+          return send(200, 'application/json', JSON.stringify(snapshot));
+        } catch (err) {
+          return send(502, 'application/json', JSON.stringify({ error: err.message }));
+        }
+      }
+
+      // Currency rates API proxy
       if (url.pathname === '/api/rates') {
         const date = url.searchParams.get('date');
         const error = validateDate(date);
         if (error) return send(400, 'application/json', JSON.stringify({ error }));
-        try { return send(200, 'application/json', JSON.stringify(await loader(date))); }
-        catch (error) { return send(502, 'application/json', JSON.stringify({ error: error.message })); }
+        try {
+          const snapshot = await loader(date);
+          return send(200, 'application/json', JSON.stringify(snapshot));
+        } catch (err) {
+          return send(502, 'application/json', JSON.stringify({ error: err.message }));
+        }
       }
+
       const asset = assets[url.pathname];
       if (!asset) return send(404, 'text/plain', 'Not found');
       send(200, asset[1], await readFile(resolve(publicRoot, asset[0])));
@@ -43,5 +78,5 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     console.error(error.code === 'EADDRINUSE' ? `Порт ${port} занят. Укажите другой порт в переменной PORT.` : error.message);
     process.exitCode = 1;
   });
-  server.listen(port, '127.0.0.1', () => console.log(`Конвертер валют: http://127.0.0.1:${port}`));
+  server.listen(port, '127.0.0.1', () => console.log(`Приложение запущено: http://127.0.0.1:${port}`));
 }
