@@ -2,51 +2,260 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#173f35">
-  <meta name="description" content="Конвертер десяти валют по справочным курсам ECB с выбором даты и локальным кэшем.">
-  <title>Курс — конвертер валют</title>
-  <link rel="icon" href="data:,">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="description" content="Лабораторная работа №3: Трекер околоземных астероидов NASA NEO Tracker и конвертер валют ECB. Spec-Driven Development и Google Antigravity.">
+  <title>NASA NEO Tracker & Конвертер валют · Лабораторная №3</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪐</text></svg>">
   <link rel="stylesheet" href="/styles.css">
   <script type="module" src="/app.js"></script>
 </head>
-<body>
+<body class="theme-space">
+  <!-- Верхняя панель навигации и режимов -->
   <header class="topbar">
-    <a class="brand" href="/" aria-label="Курс, главная"><span class="brand-mark">↗</span> курс<span class="brand-dot">.</span></a>
-    <span class="header-label">ВАЛЮТНЫЙ КОНВЕРТЕР</span>
-    <span class="source-pill"><span class="dot"></span> Данные ECB</span>
+    <div class="topbar-brand">
+      <a class="brand" href="/" aria-label="Главная страница">
+        <span class="brand-orb">🪐</span>
+        <span class="brand-text">COSMO<span class="brand-accent">·</span>LAB</span>
+      </a>
+      <span class="lab-pill">ЛАБОРАТОРНАЯ РАБОТА №3</span>
+    </div>
+
+    <!-- Переключатель приложений (Вариант NEO Tracker / Конвертер валют) -->
+    <nav class="app-nav" aria-label="Переключение лабораторного варианта">
+      <button type="button" id="tab-neo" class="nav-tab active" aria-selected="true" role="tab">
+        <span class="tab-icon">🚀</span> NASA NEO Tracker <span class="tab-badge">Вариант</span>
+      </button>
+      <button type="button" id="tab-rates" class="nav-tab" aria-selected="false" role="tab">
+        <span class="tab-icon">💱</span> Конвертер валют <span class="tab-badge-sub">ECB</span>
+      </button>
+    </nav>
+
+    <div class="topbar-status">
+      <span class="live-indicator"><span class="live-dot pulse"></span> <span id="header-api-label">NASA NeoWs API</span></span>
+    </div>
   </header>
-  <main>
-    <div class="intro"><p class="eyebrow">ПРОСТО О ДЕНЬГАХ</p><h1>Другая валюта.<br><span>Та же ясность.</span></h1>
-      <p class="lead">Пересчитайте сумму по справочному курсу.<br>С датой, источником и без лишних шагов.</p></div>
-    <section class="workspace" aria-label="Конвертер валют">
-      <div class="form-panel">
-        <div class="panel-heading"><h2>Конвертация</h2><span class="small-tag">10 валют</span></div>
-        <form id="converter" novalidate>
-          <label for="amount">Сумма</label>
-          <div class="amount-wrap"><input id="amount" name="amount" inputmode="decimal" autocomplete="off" value="100" aria-describedby="amount-error" placeholder="Например, 100,50"><span id="amount-code">EUR</span></div>
-          <p class="field-error" id="amount-error" aria-live="polite"></p>
-          <div class="currencies">
-            <div><label for="from">Из валюты</label><select id="from" name="from"></select></div>
-            <button type="button" id="swap" class="swap" aria-label="Поменять валюты местами" title="Поменять валюты местами">⇄</button>
-            <div><label for="to">В валюту</label><select id="to" name="to"></select></div>
-          </div>
-          <div class="date-row"><div class="date-field"><label for="date">Дата курса</label><input type="date" id="date" name="date" aria-describedby="date-error"></div><button id="refresh" class="text-button" type="button">↻ Обновить курсы</button></div>
-          <p class="field-error" id="date-error" aria-live="polite"></p>
-          <button id="convert" class="primary" type="submit" disabled>Конвертировать <span aria-hidden="true">↗</span></button>
-        </form>
-        <div id="status" class="notice" role="status" aria-live="polite">Загружаем курсы…</div>
-        <button id="use-cache" type="button" class="cache-button" hidden>Использовать сохранённый курс</button>
-        <p id="storage-warning" class="storage-warning" role="status"></p>
+
+  <main class="main-content">
+    <!-- ========================================== -->
+    <!-- ВЬЮ 1: NASA NEO TRACKER (ОСНОВНОЙ ВАРИАНТ) -->
+    <!-- ========================================== -->
+    <section id="view-neo" class="app-view active-view" aria-label="Трекер околоземных астероидов NASA">
+      <!-- Герой-блок -->
+      <div class="hero-section">
+        <div class="hero-tag">🛰️ МОНИТОРИНГ ОКОЛОЗЕМНЫХ ОБЪЕКТОВ</div>
+        <h1 class="hero-title">Трекер астероидов.<br><span>Траектории сближения с Землей.</span></h1>
+        <p class="hero-lead">
+          Официальные данные NASA JPL NeoWs (Near Earth Object Web Service).
+          Анализ диаметров, скоростей сближения и выявление потенциально опасных объектов (PHA).
+        </p>
       </div>
-      <aside class="result-panel" aria-label="Результат конвертации">
-        <div class="result-top"><span>ВАШ РЕЗУЛЬТАТ</span><span class="result-icon" aria-hidden="true">↗</span></div>
-        <div id="result" aria-live="polite"><p class="result-caption">Из одной валюты — в другую</p><p class="result-value empty">Всё начинается<br>с суммы.</p><p class="rate-line">Выберите валюты и нажмите<br>«Конвертировать».</p></div>
-        <div class="result-bottom"><div class="meta-row"><span>Курс на дату</span><strong id="rate-date">—</strong></div><div class="meta-row"><span>Источник</span><a href="https://frankfurter.dev/" target="_blank" rel="noopener noreferrer">Frankfurter · ECB ↗</a></div><div class="meta-row"><span>Режим</span><strong id="mode">Ожидание данных</strong></div></div>
+
+      <!-- Панель управления запросом -->
+      <div class="control-card">
+        <form id="neo-form" class="neo-query-form" novalidate>
+          <div class="query-row">
+            <div class="input-group">
+              <label for="neo-date" class="field-label">Дата наблюдения (ГГГГ-ММ-ДД)</label>
+              <div class="date-input-wrap">
+                <input type="date" id="neo-date" name="neo-date" class="cosmo-input" required aria-describedby="neo-date-error">
+                <span class="date-icon" aria-hidden="true">📅</span>
+              </div>
+            </div>
+
+            <div class="quick-dates">
+              <span class="quick-label">Быстрый выбор:</span>
+              <button type="button" id="neo-quick-today" class="btn-chip">Сегодня</button>
+              <button type="button" id="neo-quick-yesterday" class="btn-chip">Вчера</button>
+            </div>
+
+            <div class="submit-wrap">
+              <button type="submit" id="neo-submit" class="cosmo-btn-primary">
+                <span>Получить данные NASA</span> <span class="btn-arrow" aria-hidden="true">↗</span>
+              </button>
+            </div>
+          </div>
+          <p id="neo-date-error" class="field-error-msg" aria-live="polite"></p>
+        </form>
+
+        <!-- Статусные уведомления и offline/кэш баннер -->
+        <div id="neo-status" class="status-notice notice-info" role="status" aria-live="polite">
+          Готов к отправке запроса к NASA NeoWs API.
+        </div>
+
+        <div id="neo-cache-banner" class="cache-alert-box" role="alert" hidden>
+          <div class="cache-alert-content">
+            <span class="alert-icon">💾</span>
+            <p class="cache-msg">Сбой связи с сервером. Доступен сохраненный кэш.</p>
+          </div>
+          <button type="button" id="neo-use-cache-btn" class="btn-use-cache">
+            Загрузить снимок из кэша
+          </button>
+        </div>
+      </div>
+
+      <!-- Сводная статистика за выбранную дату -->
+      <div id="neo-stats-bar" class="stats-ribbon" hidden>
+        <div class="stat-card">
+          <span class="stat-caption">Всего объектов</span>
+          <strong id="stat-total-count" class="stat-figure">0</strong>
+        </div>
+        <div class="stat-card hazard-stat">
+          <span class="stat-caption">Потенциально опасных (PHA)</span>
+          <strong id="stat-hazardous-count" class="stat-figure">0</strong>
+        </div>
+        <div class="stat-card">
+          <span class="stat-caption">Ближайший пролет</span>
+          <strong id="stat-closest-distance" class="stat-figure">—</strong>
+          <small id="stat-closest-name" class="stat-sub">—</small>
+        </div>
+        <div class="stat-card">
+          <span class="stat-caption">Макс. скорость</span>
+          <strong id="stat-fastest-speed" class="stat-figure">—</strong>
+        </div>
+      </div>
+
+      <!-- Панель фильтров и сортировки списка -->
+      <div class="toolbar-card">
+        <div class="filter-group">
+          <button type="button" id="neo-filter-all" class="btn-filter active">Все объекты</button>
+          <button type="button" id="neo-filter-hazard" class="btn-filter filter-hazard">⚠️ Только опасные</button>
+        </div>
+
+        <div class="search-sort-group">
+          <div class="search-wrap">
+            <input type="search" id="neo-search-input" class="search-input" placeholder="🔍 Поиск по имени или ID...">
+          </div>
+
+          <div class="sort-wrap">
+            <label for="neo-sort-select" class="sort-label">Сортировка:</label>
+            <select id="neo-sort-select" class="sort-select">
+              <option value="distance">По расстоянию (ближайшие)</option>
+              <option value="diameter">По размеру (крупные)</option>
+              <option value="velocity">По скорости сближения</option>
+              <option value="name">По имени объекта</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Сетка карточек астероидов -->
+      <section id="neo-grid" class="neo-card-grid" aria-live="polite" aria-label="Список обнаруженных околоземных астероидов">
+        <!-- Заполняется динамически neo-app.js -->
+        <div class="empty-state">
+          <div class="empty-icon">🪐</div>
+          <p class="empty-title">Выберите дату и нажмите «Получить данные»</p>
+          <p class="empty-desc">Астрономические данные по околоземным объектам будут загружены из базы NASA.</p>
+        </div>
+      </section>
+
+      <!-- Информационный подвал метаданных -->
+      <aside class="meta-card">
+        <div class="meta-item">
+          <span class="meta-key">Источник данных</span>
+          <strong id="neo-meta-source" class="meta-val">NASA JPL NeoWs (Near Earth Object Web Service)</strong>
+        </div>
+        <div class="meta-item">
+          <span class="meta-key">Метка времени ответа</span>
+          <strong id="neo-meta-time" class="meta-val">—</strong>
+        </div>
+        <div class="meta-item">
+          <span class="meta-key">Режим работы</span>
+          <strong id="neo-meta-mode" class="meta-val">Ожидание запроса</strong>
+        </div>
       </aside>
     </section>
-    <section class="details" aria-label="О курсах"><div><span class="detail-number">01 /</span><h3>Проверяемый источник</h3><p>Справочные курсы Европейского центрального банка через Frankfurter.</p></div><div><span class="detail-number">02 /</span><h3>Каждая дата на месте</h3><p>В выходные и праздники показываем последний опубликованный курс и его дату.</p></div><div><span class="detail-number">03 /</span><h3>Курсы под рукой</h3><p>Последний успешный ответ сохраняется в браузере и доступен при сбое сети.</p></div></section>
+
+    <!-- ========================================== -->
+    <!-- ВЬЮ 2: КОНВЕРТЕР ВАЛЮТ (БАЗОВЫЙ ВАРИАНТ)  -->
+    <!-- ========================================== -->
+    <section id="view-rates" class="app-view" aria-label="Конвертер валют ECB" hidden>
+      <div class="hero-section">
+        <div class="hero-tag">💱 ЕВРОПЕЙСКИЙ ЦЕНТРАЛЬНЫЙ БАНК</div>
+        <h1 class="hero-title">Конвертер валют.<br><span>Справочные курсы ECB.</span></h1>
+        <p class="hero-lead">Пересчитайте сумму по официальному курсу с поддержкой выходных дней и офлайн-кэша.</p>
+      </div>
+
+      <div class="workspace" aria-label="Конвертер валют">
+        <div class="form-panel">
+          <div class="panel-heading">
+            <h2>Конвертация</h2>
+            <span class="small-tag">10 валют ECB</span>
+          </div>
+          <form id="converter" novalidate>
+            <label for="amount">Сумма</label>
+            <div class="amount-wrap">
+              <input id="amount" name="amount" inputmode="decimal" autocomplete="off" value="100" aria-describedby="amount-error" placeholder="Например, 100,50">
+              <span id="amount-code">EUR</span>
+            </div>
+            <p class="field-error" id="amount-error" aria-live="polite"></p>
+
+            <div class="currencies">
+              <div><label for="from">Из валюты</label><select id="from" name="from"></select></div>
+              <button type="button" id="swap" class="swap" aria-label="Поменять валюты местами" title="Поменять валюты местами">⇄</button>
+              <div><label for="to">В валюту</label><select id="to" name="to"></select></div>
+            </div>
+
+            <div class="date-row">
+              <div class="date-field">
+                <label for="date">Дата курса</label>
+                <input type="date" id="date" name="date" aria-describedby="date-error">
+              </div>
+              <button id="refresh" class="text-button" type="button">↻ Обновить курсы</button>
+            </div>
+            <p class="field-error" id="date-error" aria-live="polite"></p>
+            <button id="convert" class="primary" type="submit" disabled>Конвертировать <span aria-hidden="true">↗</span></button>
+          </form>
+
+          <div id="status" class="notice" role="status" aria-live="polite">Загружаем курсы…</div>
+          <button id="use-cache" type="button" class="cache-button" hidden>Использовать сохранённый курс</button>
+          <p id="storage-warning" class="storage-warning" role="status"></p>
+        </div>
+
+        <aside class="result-panel" aria-label="Результат конвертации">
+          <div class="result-top">
+            <span>ВАШ РЕЗУЛЬТАТ</span>
+            <span class="result-icon" aria-hidden="true">↗</span>
+          </div>
+          <div id="result" aria-live="polite">
+            <p class="result-caption">Из одной валюты — в другую</p>
+            <p class="result-value empty">Всё начинается<br>с суммы.</p>
+            <p class="rate-line">Выберите валюты и нажмите<br>«Конвертировать».</p>
+          </div>
+          <div class="result-bottom">
+            <div class="meta-row"><span>Курс на дату</span><strong id="rate-date">—</strong></div>
+            <div class="meta-row"><span>Источник</span><a href="https://frankfurter.dev/" target="_blank" rel="noopener noreferrer">Frankfurter · ECB ↗</a></div>
+            <div class="meta-row"><span>Режим</span><strong id="mode">Ожидание данных</strong></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- Нижняя информационная карточка лаборатории -->
+    <section class="details-section" aria-label="Параметры работы">
+      <div class="detail-card">
+        <span class="detail-number">01 / SDD</span>
+        <h3>Spec-Driven Development</h3>
+        <p>Разработка на основе GitHub Spec Kit: конституция, спецификация, план и задачи перед кодом.</p>
+      </div>
+      <div class="detail-card">
+        <span class="detail-number">02 / AGY</span>
+        <h3>Google Antigravity 2.0</h3>
+        <p>Сборка и генерация логики агентом Antigravity с моделью Gemini 3.8 Flash.</p>
+      </div>
+      <div class="detail-card">
+        <span class="detail-number">03 / REAL</span>
+        <h3>Реальные API и Offline</h3>
+        <p>Настоящие данные NASA NeoWs и Frankfurter ECB с валидацией, кэшированием и fallback.</p>
+      </div>
+    </section>
   </main>
-  <footer><span>курс. <span class="footer-muted">/ Лабораторная работа №3</span></span><span>Справочный расчёт · без учёта комиссий</span></footer>
+
+  <footer class="app-footer">
+    <div class="footer-wrap">
+      <span>Лабораторная работа №3 · Spec-Driven Development & Google Antigravity</span>
+      <span class="footer-source">Источники: <a href="https://api.nasa.gov/" target="_blank" rel="noopener">NASA NeoWs</a> · <a href="https://frankfurter.dev/" target="_blank" rel="noopener">ECB Frankfurter</a></span>
+    </div>
+  </footer>
 </body>
 </html>

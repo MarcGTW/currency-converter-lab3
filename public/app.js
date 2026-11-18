@@ -1,7 +1,45 @@
 import { CURRENCIES, MIN_DATE, localToday, parseAmount, validateDate, validateSnapshot, convert, formatMoney } from './core.js';
 import { readCache, writeCache, eligibleCache } from './cache.js';
+import { initNeoApp } from './neo-app.js';
 
 const $ = id => document.getElementById(id);
+
+// --- Инициализация вкладок режимов (NEO Tracker / Конвертер валют) ---
+const tabNeo = $('tab-neo');
+const tabRates = $('tab-rates');
+const viewNeo = $('view-neo');
+const viewRates = $('view-rates');
+const headerApiLabel = $('header-api-label');
+
+function switchTab(target) {
+  if (target === 'neo') {
+    tabNeo.classList.add('active');
+    tabNeo.setAttribute('aria-selected', 'true');
+    tabRates.classList.remove('active');
+    tabRates.setAttribute('aria-selected', 'false');
+    viewNeo.hidden = false;
+    viewRates.hidden = true;
+    if (headerApiLabel) headerApiLabel.textContent = 'NASA NeoWs API';
+  } else {
+    tabRates.classList.add('active');
+    tabRates.setAttribute('aria-selected', 'true');
+    tabNeo.classList.remove('active');
+    tabNeo.setAttribute('aria-selected', 'false');
+    viewRates.hidden = false;
+    viewNeo.hidden = true;
+    if (headerApiLabel) headerApiLabel.textContent = 'Frankfurter ECB API';
+  }
+}
+
+if (tabNeo && tabRates) {
+  tabNeo.addEventListener('click', () => switchTab('neo'));
+  tabRates.addEventListener('click', () => switchTab('rates'));
+}
+
+// Инициализируем космический трекер астероидов
+initNeoApp();
+
+// --- Логика конвертера валют ECB ---
 let storage;
 try { storage = window.localStorage; } catch { storage = null; }
 let cached = readCache(storage);
@@ -13,22 +51,31 @@ let controller;
 let loadError = '';
 
 for (const id of ['from', 'to']) {
+  const el = $(id);
+  if (!el) continue;
   for (const [code, name] of Object.entries(CURRENCIES)) {
     const option = document.createElement('option');
     option.value = code; option.textContent = `${code} — ${name}`;
-    $(id).append(option);
+    el.append(option);
   }
 }
-$('from').value = 'EUR'; $('to').value = 'USD';
-$('date').min = MIN_DATE; $('date').max = localToday(); $('date').value = localToday();
-$('storage-warning').textContent = cached.warning;
+if ($('from')) $('from').value = 'EUR';
+if ($('to')) $('to').value = 'USD';
+if ($('date')) {
+  $('date').min = MIN_DATE;
+  $('date').max = localToday();
+  $('date').value = localToday();
+}
+if ($('storage-warning')) $('storage-warning').textContent = cached.warning;
 
 function notice(message, kind = '') {
+  if (!$('status')) return;
   $('status').textContent = message;
   $('status').className = `notice ${kind}`;
 }
 
 function clearResult() {
+  if (!$('result')) return;
   $('result').replaceChildren();
   const caption = document.createElement('p'); caption.className = 'result-caption'; caption.textContent = 'Из одной валюты — в другую';
   const value = document.createElement('p'); value.className = 'result-value empty'; value.textContent = 'Всё начинается с суммы.';
@@ -37,6 +84,7 @@ function clearResult() {
 }
 
 function updateControls() {
+  if (!$('converter')) return;
   let amountError = '';
   try { parseAmount($('amount').value); } catch (error) { amountError = error.message; }
   const dateError = validateDate($('date').value);
@@ -54,8 +102,8 @@ function updateControls() {
 }
 
 function showMetadata() {
-  $('rate-date').textContent = snapshot ? displayDate(snapshot.date) : '—';
-  $('mode').textContent = !snapshot ? 'Ожидание данных' : mode === 'cache' ? 'Сохранённый курс' : 'Ответ источника';
+  if ($('rate-date')) $('rate-date').textContent = snapshot ? displayDate(snapshot.date) : '—';
+  if ($('mode')) $('mode').textContent = !snapshot ? 'Ожидание данных' : mode === 'cache' ? 'Сохранённый курс' : 'Ответ источника';
 }
 
 function displayDate(value) {
@@ -70,7 +118,8 @@ function showReady() {
   } else notice('Курсы загружены. Можно выполнить конвертацию.');
 }
 
-async function refresh() {
+async function refreshRates() {
+  if (!$('date')) return;
   const id = ++requestId;
   controller?.abort();
   snapshot = null; busy = false; loadError = ''; clearResult(); showMetadata();
@@ -87,7 +136,6 @@ async function refresh() {
     if (snapshot.date > date) { snapshot = null; throw new Error('Источник вернул курс позже выбранной даты.'); }
     mode = 'network';
     $('storage-warning').textContent = writeCache(storage, snapshot);
-    // Keep the successful answer in memory even when localStorage is unavailable.
     cached = { snapshot, savedAt: new Date().toISOString() };
     showReady(); showMetadata();
   } catch (error) {
@@ -101,33 +149,36 @@ async function refresh() {
   }
 }
 
-$('converter').addEventListener('submit', event => {
-  event.preventDefault(); updateControls();
-  if ($('convert').disabled) return;
-  try {
-    const amount = parseAmount($('amount').value);
-    const from = $('from').value, to = $('to').value;
-    const value = convert(amount, from, to, snapshot);
-    const caption = document.createElement('p'); caption.className = 'result-caption'; caption.textContent = `${formatMoney(amount, from)} ${from} =`;
-    const result = document.createElement('p'); result.className = 'result-value'; result.textContent = formatMoney(value, to);
-    const currency = document.createElement('p'); currency.className = 'result-currency'; currency.textContent = `${to} · ${CURRENCIES[to]}`;
-    const rate = document.createElement('p'); rate.className = 'rate-line'; rate.textContent = `1 ${from} = ${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 6 }).format(convert(1, from, to, snapshot))} ${to}`;
-    $('result').replaceChildren(caption, result, currency, rate);
-  } catch (error) { notice(error.message, 'error'); }
-});
+if ($('converter')) {
+  $('converter').addEventListener('submit', event => {
+    event.preventDefault(); updateControls();
+    if ($('convert').disabled) return;
+    try {
+      const amount = parseAmount($('amount').value);
+      const from = $('from').value, to = $('to').value;
+      const value = convert(amount, from, to, snapshot);
+      const caption = document.createElement('p'); caption.className = 'result-caption'; caption.textContent = `${formatMoney(amount, from)} ${from} =`;
+      const result = document.createElement('p'); result.className = 'result-value'; result.textContent = formatMoney(value, to);
+      const currency = document.createElement('p'); currency.className = 'result-currency'; currency.textContent = `${to} · ${CURRENCIES[to]}`;
+      const rate = document.createElement('p'); rate.className = 'rate-line'; rate.textContent = `1 ${from} = ${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 6 }).format(convert(1, from, to, snapshot))} ${to}`;
+      $('result').replaceChildren(caption, result, currency, rate);
+    } catch (error) { notice(error.message, 'error'); }
+  });
 
-for (const id of ['amount', 'from', 'to']) $(id).addEventListener(id === 'amount' ? 'input' : 'change', () => {
-  clearResult(); if (snapshot) showReady(); updateControls();
-});
-$('swap').addEventListener('click', () => {
-  const old = $('from').value; $('from').value = $('to').value; $('to').value = old;
-  clearResult(); if (snapshot) showReady(); updateControls();
-});
-$('date').addEventListener('change', refresh);
-$('refresh').addEventListener('click', refresh);
-$('use-cache').addEventListener('click', () => {
-  if (!eligibleCache(cached.snapshot, $('date').value) || validateDate($('date').value)) return;
-  snapshot = cached.snapshot; mode = 'cache'; loadError = ''; clearResult(); showReady(); showMetadata(); updateControls();
-});
-updateControls();
-refresh();
+  for (const id of ['amount', 'from', 'to']) {
+    $(id).addEventListener(id === 'amount' ? 'input' : 'change', () => {
+      clearResult(); if (snapshot) showReady(); updateControls();
+    });
+  }
+  $('swap').addEventListener('click', () => {
+    const old = $('from').value; $('from').value = $('to').value; $('to').value = old;
+    clearResult(); if (snapshot) showReady(); updateControls();
+  });
+  $('date').addEventListener('change', refreshRates);
+  $('refresh').addEventListener('click', refreshRates);
+  $('use-cache').addEventListener('click', () => {
+    if (!eligibleCache(cached.snapshot, $('date').value) || validateDate($('date').value)) return;
+    snapshot = cached.snapshot; mode = 'cache'; loadError = ''; clearResult(); showReady(); showMetadata(); updateControls();
+  });
+  updateControls();
+}
